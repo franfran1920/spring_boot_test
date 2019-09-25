@@ -1,28 +1,192 @@
 package com.idealista.infrastructure.api;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.idealista.infrastructure.persistence.AdVO;
+import com.idealista.infrastructure.persistence.InMemoryPersistence;
+import com.idealista.infrastructure.persistence.PictureVO;
 
 @RestController
 public class AdsController {
 
-    //TODO añade url del endpoint
+	InMemoryPersistence persistence = new InMemoryPersistence();
+	List<AdVO> persistenceAds = new ArrayList();
+	
+	List<QualityAd> qualityAd;
+	List<PublicAd> publicAd;
+	
+    @RequestMapping("/qualityList")
     public ResponseEntity<List<QualityAd>> qualityListing() {
         //TODO rellena el cuerpo del método
-        return ResponseEntity.notFound().build();
+    	
+    	persistenceAds = persistence.getAds();
+    	qualityAd = new ArrayList<QualityAd>();
+    	
+    	for(int i=0; i<persistenceAds.size(); i++) {
+    		QualityAd newAd = new QualityAd();
+    		newAd.setId(persistenceAds.get(i).getId());
+    		newAd.setTypology(persistenceAds.get(i).getTypology());
+    		newAd.setDescription(persistenceAds.get(i).getDescription());
+    		
+    		List<String> urls = new ArrayList();
+    		for(int j=0; j<persistenceAds.get(i).getPictures().size(); j++) {
+    			urls.add(persistence.getPictures().get(persistenceAds.get(i).getPictures().get(j)-1).getUrl());
+    		}
+    		newAd.setPictureUrls(urls);
+    		newAd.setHouseSize(persistenceAds.get(i).getHouseSize());
+    		newAd.setGardenSize(persistenceAds.get(i).getGardenSize());
+    		newAd.setScore(persistenceAds.get(i).getScore());
+    		newAd.setIrrelevantSince(persistenceAds.get(i).getIrrelevantSince());
+    		
+    		qualityAd.add(newAd);
+    	}
+        
+        return new ResponseEntity<List<QualityAd>>(qualityAd, HttpStatus.OK);
     }
+    
 
-    //TODO añade url del endpoint
+    @RequestMapping("/publicList")
     public ResponseEntity<List<PublicAd>> publicListing() {
         //TODO rellena el cuerpo del método
-        return ResponseEntity.notFound().build();
+    	persistenceAds = persistence.getAds();
+    	publicAd = new ArrayList<PublicAd>();
+    	
+    	//ordeno el vector de anuncios por puntuación
+    	Collections.sort(persistenceAds, new Comparator<AdVO>() {
+    		public int compare(AdVO ad1, AdVO ad2) {
+    			return ad2.getScore().compareTo(ad1.getScore());
+    		}
+		});
+    	
+    	for(int i=0; i<persistenceAds.size(); i++) {
+    		System.out.print(persistenceAds.get(i).getId() + ", " + persistenceAds.get(i).getScore() + "\n");
+    		if(persistenceAds.get(i).getScore() >= 40) {
+        		PublicAd newAd = new PublicAd();
+        		newAd.setId(persistenceAds.get(i).getId());
+        		newAd.setTypology(persistenceAds.get(i).getTypology());
+        		newAd.setDescription(persistenceAds.get(i).getDescription());
+        		
+        		List<String> urls = new ArrayList();
+        		for(int j=0; j<persistenceAds.get(i).getPictures().size(); j++) {
+        			urls.add(persistence.getPictures().get(persistenceAds.get(i).getPictures().get(j)-1).getUrl());
+        		}
+        		newAd.setPictureUrls(urls);
+        		newAd.setHouseSize(persistenceAds.get(i).getHouseSize());
+        		newAd.setGardenSize(persistenceAds.get(i).getGardenSize());
+        		
+        		publicAd.add(newAd);
+    		}
+    	}
+    	return new ResponseEntity<List<PublicAd>>(publicAd, HttpStatus.OK);
     }
 
-    //TODO añade url del endpoint
-    public ResponseEntity<Void> calculateScore() {
+    @RequestMapping("/score")
+    public ResponseEntity<List<String>> calculateScore() {
         //TODO rellena el cuerpo del método
-        return ResponseEntity.notFound().build();
+        
+    	List<Integer> scores = new ArrayList<Integer>();
+    	List<String> resultados = new ArrayList<String>();
+    	
+    	for(int i=0; i<persistence.getAds().size(); i++) {
+    		int score = 0;
+    		
+    		AdVO ad = persistence.getAd(i);
+    		PictureVO picture = persistence.getPicture(i);
+    		
+    		//Si el anuncio tiene fotos
+    		if(ad.getPictures().size() > 0) {
+    			List<Integer> pictureInteger = ad.getPictures();
+    			for(int j = 0; j<pictureInteger.size(); j++) {
+    				Integer pictureIndex = pictureInteger.get(j);
+    				
+    				if(persistence.getPictures().get(pictureIndex-1).getQuality() == "HD") {
+    					score += 20;
+    				}else {
+    					score += 10;
+    				}
+    			}
+    		}else {
+    			score -= 10;
+    		}
+    		
+    		//si el anuncio tiene texto descriptivo
+    		String descripcion = ad.getDescription().toLowerCase();
+    		List<String> words_descripcion = Arrays.asList(descripcion.split("\\s+"));
+    		
+    		if(words_descripcion.size() > 0) {
+    			score += 5;
+    			
+    			//caso para añadir puntos segun la longitud de la descripcion
+    			if(ad.getTypology() == "FLAT") {
+    				if(words_descripcion.size() >= 50) {
+    					score += 30;
+    				}else {
+    					if(words_descripcion.size() > 20){
+    						score += 10;
+    					}
+    				}
+    			}else {
+    				if(ad.getTypology() == "CHALET" && words_descripcion.size() > 50) {
+    					score += 20;
+    				}
+    			}
+    			
+    			//coincidencia de palabras en la descripcion
+				List<String> keyWords = persistence.getKeyWords();
+				for(int j=0; j<keyWords.size(); j++) {
+					if(words_descripcion.contains(keyWords.get(j).toLowerCase())) {
+						score += 5;
+					}
+				}
+    		}
+    		
+    		
+    		//comprobar si un anuncio es completo
+    		if(ad.getPictures().size() > 0) {
+    			if(ad.getDescription().length() > 0) {
+        			//caso de pisos
+        			if(ad.getTypology() == "FLAT" && ad.getHouseSize() != null) {
+        				score += 40;
+        			}
+        			
+        			//caso de pisos
+        			if(ad.getTypology() == "CHALET" && ad.getHouseSize() != null && ad.getGardenSize() != null) {
+        				score += 40;
+        			}
+    			}else {
+    				//caso de los garajes
+    				if(ad.getTypology() == "GARAGE") {
+    					score += 40;
+    				}
+    			}
+    		}
+    		
+    		
+    		
+    		if(score < 0) score = 0;
+    		if(score > 100) score = 100;
+    		
+    		persistence.setScore(i, score);
+    		
+    		scores.add(score);
+    		resultados.add("Anuncio "+ persistence.getAd(i).getId() + ", puntuacion: " + score);
+    		System.out.print("Anuncio "+ persistence.getAd(i).getId() + ", puntuacion: " + score + "\n");
+    	}
+    	
+    	
+    	return new ResponseEntity<List<String>>(resultados, HttpStatus.OK);
     }
+    
+    
 }

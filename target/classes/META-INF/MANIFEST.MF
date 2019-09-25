@@ -1,0 +1,10 @@
+Manifest-Version: 1.0
+Implementation-Title: ad-ranking-challenge
+Implementation-Version: 1.0
+Built-By: franciscojesus
+Implementation-Vendor-Id: com.idealista
+Build-Jdk: 1.8.0_131
+Implementation-URL: https://projects.spring.io/spring-boot/#/spring-bo
+ ot-starter-parent/ad-ranking-challenge
+Created-By: Maven Integration for Eclipse
+
