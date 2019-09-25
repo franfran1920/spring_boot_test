@@ -22,21 +22,38 @@ public class AdsController {
 	
 	List<QualityAd> qualityAd;
 	
-//    @RequestMapping("/qualityList")
-//    public ResponseEntity<List<QualityAd>> qualityListing() {
-//        //TODO rellena el cuerpo del método
-//    	qualityAd = new ArrayList<QualityAd>();
-//        
-//        return new ResponseEntity<List<QualityAd>>(persistence.getAds(), HttpStatus.OK);
-//    }
-    
-    @RequestMapping("/qualityList2")
-    public ResponseEntity<Boolean> qualityListing2() {
+    @RequestMapping("/qualityList")
+    public ResponseEntity<List<QualityAd>> qualityListing() {
+        //TODO rellena el cuerpo del método
+    	List<AdVO> persistenceAds = new ArrayList();
+    	persistenceAds = persistence.getAds();
+    	qualityAd = new ArrayList<QualityAd>();
+    	
+    	
+    	for(int i=0; i<persistenceAds.size(); i++) {
+    		QualityAd newAd = new QualityAd();
+    		newAd.setId(i);
+    		newAd.setTypology(persistenceAds.get(i).getTypology());
+    		newAd.setDescription(persistenceAds.get(i).getDescription());
+    		
+    		List<String> urls = new ArrayList();
+    		for(int j=0; j<persistenceAds.get(i).getPictures().size(); j++) {
+    			urls.add(persistence.getPictures().get(persistenceAds.get(i).getPictures().get(j)-1).getUrl());
+    		}
+    		newAd.setPictureUrls(urls);
+    		newAd.setHouseSize(persistenceAds.get(i).getHouseSize());
+    		newAd.setGardenSize(persistenceAds.get(i).getGardenSize());
+    		newAd.setScore(persistenceAds.get(i).getScore());
+    		newAd.setIrrelevantSince(persistenceAds.get(i).getIrrelevantSince());
+    		
+    		qualityAd.add(newAd);
+    	}
         
-        return new ResponseEntity<Boolean>(true, HttpStatus.OK);
+        return new ResponseEntity<List<QualityAd>>(qualityAd, HttpStatus.OK);
     }
+    
 
-    //TODO añade url del endpoint
+    @RequestMapping("/publicList")
     public ResponseEntity<List<PublicAd>> publicListing() {
         //TODO rellena el cuerpo del método
         return ResponseEntity.notFound().build();
@@ -128,6 +145,7 @@ public class AdsController {
     		if(score < 0) score = 0;
     		if(score > 100) score = 100;
     		
+    		persistence.setScore(i, score);
     		
     		scores.add(score);
     		resultados.add("Anuncio "+ i + ", puntuacion: " + score);

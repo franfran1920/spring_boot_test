@@ -24,7 +24,7 @@ public class InMemoryPersistence {
         ads.add(new AdVO(4, "FLAT", "Ático céntrico muy luminoso y recién reformado, parece nuevo", Arrays.asList(5), 300, null, null, null));
         ads.add(new AdVO(5, "FLAT", "Pisazo,", Arrays.asList(3, 8), 300, null, null, null));
         ads.add(new AdVO(6, "GARAGE", "", Arrays.asList(6), 300, null, null, null));
-        ads.add(new AdVO(7, "GARAGE", "Garaje en el centro de Albacete", Collections.<Integer>emptyList(), 300, null, null, null));
+        ads.add(new AdVO(7, "	", "Garaje en el centro de Albacete", Collections.<Integer>emptyList(), 300, null, null, null));
         ads.add(new AdVO(8, "CHALET", "Maravilloso chalet situado en lAs afueras de un pequeño pueblo rural. El entorno es espectacular, las vistas magníficas. ¡Cómprelo ahora!", Arrays.asList(1, 7), 300, null, null, null));
 
         pictures = new ArrayList<PictureVO>();
@@ -65,5 +65,9 @@ public class InMemoryPersistence {
     
     public PictureVO getPicture(int index) {
     	return pictures.get(index);
+    }
+    
+    public void setScore(int index, int score) {
+    	ads.get(index).setScore(score);
     }
 }
