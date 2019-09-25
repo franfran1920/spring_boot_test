@@ -2,6 +2,8 @@ package com.idealista.infrastructure.api;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -19,20 +21,21 @@ import com.idealista.infrastructure.persistence.PictureVO;
 public class AdsController {
 
 	InMemoryPersistence persistence = new InMemoryPersistence();
+	List<AdVO> persistenceAds = new ArrayList();
 	
 	List<QualityAd> qualityAd;
+	List<PublicAd> publicAd;
 	
     @RequestMapping("/qualityList")
     public ResponseEntity<List<QualityAd>> qualityListing() {
         //TODO rellena el cuerpo del método
-    	List<AdVO> persistenceAds = new ArrayList();
+    	
     	persistenceAds = persistence.getAds();
     	qualityAd = new ArrayList<QualityAd>();
     	
-    	
     	for(int i=0; i<persistenceAds.size(); i++) {
     		QualityAd newAd = new QualityAd();
-    		newAd.setId(i);
+    		newAd.setId(persistenceAds.get(i).getId());
     		newAd.setTypology(persistenceAds.get(i).getTypology());
     		newAd.setDescription(persistenceAds.get(i).getDescription());
     		
@@ -56,7 +59,36 @@ public class AdsController {
     @RequestMapping("/publicList")
     public ResponseEntity<List<PublicAd>> publicListing() {
         //TODO rellena el cuerpo del método
-        return ResponseEntity.notFound().build();
+    	persistenceAds = persistence.getAds();
+    	publicAd = new ArrayList<PublicAd>();
+    	
+    	//ordeno el vector de anuncios por puntuación
+    	Collections.sort(persistenceAds, new Comparator<AdVO>() {
+    		public int compare(AdVO ad1, AdVO ad2) {
+    			return ad2.getScore().compareTo(ad1.getScore());
+    		}
+		});
+    	
+    	for(int i=0; i<persistenceAds.size(); i++) {
+    		System.out.print(persistenceAds.get(i).getId() + ", " + persistenceAds.get(i).getScore() + "\n");
+    		if(persistenceAds.get(i).getScore() >= 40) {
+        		PublicAd newAd = new PublicAd();
+        		newAd.setId(persistenceAds.get(i).getId());
+        		newAd.setTypology(persistenceAds.get(i).getTypology());
+        		newAd.setDescription(persistenceAds.get(i).getDescription());
+        		
+        		List<String> urls = new ArrayList();
+        		for(int j=0; j<persistenceAds.get(i).getPictures().size(); j++) {
+        			urls.add(persistence.getPictures().get(persistenceAds.get(i).getPictures().get(j)-1).getUrl());
+        		}
+        		newAd.setPictureUrls(urls);
+        		newAd.setHouseSize(persistenceAds.get(i).getHouseSize());
+        		newAd.setGardenSize(persistenceAds.get(i).getGardenSize());
+        		
+        		publicAd.add(newAd);
+    		}
+    	}
+    	return new ResponseEntity<List<PublicAd>>(publicAd, HttpStatus.OK);
     }
 
     @RequestMapping("/score")
@@ -148,11 +180,13 @@ public class AdsController {
     		persistence.setScore(i, score);
     		
     		scores.add(score);
-    		resultados.add("Anuncio "+ i + ", puntuacion: " + score);
-    		System.out.print("Anuncio "+ i + ", puntuacion: " + score + "\n");
+    		resultados.add("Anuncio "+ persistence.getAd(i).getId() + ", puntuacion: " + score);
+    		System.out.print("Anuncio "+ persistence.getAd(i).getId() + ", puntuacion: " + score + "\n");
     	}
     	
     	
     	return new ResponseEntity<List<String>>(resultados, HttpStatus.OK);
     }
+    
+    
 }
